@@ -3,6 +3,7 @@ using BackEnd.Entities;
 using BackEnd.Models.Options;
 using BackEnd.Services;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Azure.Cosmos;
 
 var builder = WebApplication.CreateBuilder(args);
 

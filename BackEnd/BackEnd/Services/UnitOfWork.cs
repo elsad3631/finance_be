@@ -14,14 +14,7 @@ namespace BackEnd.Services
             this._context = context;
             this.dbContext = context;
 
-            CustomerRepository = new CustomerRepository(this._context);
-        }
-
-      
-        public ICustomerRepository CustomerRepository
-        {
-            get;
-            private set;
+            
         }
         
         public void Dispose()
