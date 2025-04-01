@@ -1,5 +1,4 @@
 ﻿using BackEnd.CosmosEntities;
-using BackEnd.Models.UserInformation;
 
 namespace BackEnd.Interfaces.IBusinessServices
 {

@@ -1,31 +1,31 @@
 ﻿using AutoMapper;
 using BackEnd.CosmosEntities;
 using BackEnd.Interfaces.IBusinessServices;
-using BackEnd.Models.StartingInfos;
+using BackEnd.Models.RecurringFinancialPlan;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BackEnd.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class UserInformationController : ControllerBase
+    public class RecurringFinancialPlanController : ControllerBase
     {
         private readonly IMapper _mapper;
-        private readonly ILogger<UserInformationController> _logger;
-        private readonly IStartingInfosService _startingInfosService;
-        public UserInformationController(IMapper mapper, ILogger<UserInformationController> logger, IStartingInfosService startingInfosService)
+        private readonly ILogger<RecurringFinancialPlanController> _logger;
+        private readonly IRecurringFinancialPlanService _recurringFinancialPlanService;
+        public RecurringFinancialPlanController(IMapper mapper, ILogger<RecurringFinancialPlanController> logger, IRecurringFinancialPlanService recurringFinancialPlanService)
         {
             _mapper = mapper;
             _logger = logger;
-            _startingInfosService = startingInfosService;
+            _recurringFinancialPlanService = recurringFinancialPlanService;
         }
 
         [HttpPost(nameof(Create))]
-        public async Task<IActionResult> Create([FromBody] StartingInfosCreateModel item)
+        public async Task<IActionResult> Create([FromBody] RecurringFinancialPlanCreateModel item)
         {
             try
             {
-                await _startingInfosService.CreateAsync(_mapper.Map<StartingInfos>(item));
+                await _recurringFinancialPlanService.CreateAsync(_mapper.Map<RecurringFinancialPlan>(item));
                 return Ok(item);
             }
             catch (Exception ex)
@@ -40,7 +40,7 @@ namespace BackEnd.Controllers
         {
             try
             {
-                var item = await _startingInfosService.GetByIdAsync(id);
+                var item = await _recurringFinancialPlanService.GetByIdAsync(id);
                 if (item == null) return NotFound();
                 return Ok(item);
             }
@@ -56,7 +56,7 @@ namespace BackEnd.Controllers
         {
             try
             {
-                var items = await _startingInfosService.GetAsync();
+                var items = await _recurringFinancialPlanService.GetAsync();
                 return Ok(items);
             }
             catch (Exception ex)
@@ -67,11 +67,11 @@ namespace BackEnd.Controllers
         }
 
         [HttpPut(nameof(Update))]
-        public async Task<IActionResult> Update(string id, [FromBody] StartingInfosUpdateModel item)
+        public async Task<IActionResult> Update(string id, [FromBody] RecurringFinancialPlanUpdateModel item)
         {
             try
             {
-                await _startingInfosService.UpdateAsync(id, _mapper.Map<StartingInfos>(item));
+                await _recurringFinancialPlanService.UpdateAsync(id, _mapper.Map<RecurringFinancialPlan>(item));
                 return NoContent();
             }
             catch (Exception ex)
@@ -86,7 +86,7 @@ namespace BackEnd.Controllers
         {
             try
             {
-                await _startingInfosService.DeleteAsync(id);
+                await _recurringFinancialPlanService.DeleteAsync(id);
                 return NoContent();
             }
             catch (Exception ex)

@@ -1,6 +1,6 @@
-﻿namespace BackEnd.Models.UserInformation
+﻿namespace BackEnd.Models.RecurringFinancialPlan
 {
-    public class StartingInfosCreateModel
+    public class RecurringFinancialPlanCreateModel
     {
         public string UseCase { get; set; } = string.Empty;
         public string Experiace { get; set; } = string.Empty;

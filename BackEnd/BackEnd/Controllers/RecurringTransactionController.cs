@@ -1,31 +1,31 @@
 ﻿using AutoMapper;
 using BackEnd.CosmosEntities;
 using BackEnd.Interfaces.IBusinessServices;
-using BackEnd.Models.StartingInfos;
+using BackEnd.Models.RecurringTransaction;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BackEnd.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class UserInformationController : ControllerBase
+    public class RecurringTransactionController : ControllerBase
     {
         private readonly IMapper _mapper;
-        private readonly ILogger<UserInformationController> _logger;
-        private readonly IStartingInfosService _startingInfosService;
-        public UserInformationController(IMapper mapper, ILogger<UserInformationController> logger, IStartingInfosService startingInfosService)
+        private readonly ILogger<RecurringTransactionController> _logger;
+        private readonly IRecurringTransactionService _recurringTransactionService;
+        public RecurringTransactionController(IMapper mapper, ILogger<RecurringTransactionController> logger, IRecurringTransactionService recurringTransactionService)
         {
             _mapper = mapper;
             _logger = logger;
-            _startingInfosService = startingInfosService;
+            _recurringTransactionService = recurringTransactionService;
         }
 
         [HttpPost(nameof(Create))]
-        public async Task<IActionResult> Create([FromBody] StartingInfosCreateModel item)
+        public async Task<IActionResult> Create([FromBody] RecurringTransactionCreateModel item)
         {
             try
             {
-                await _startingInfosService.CreateAsync(_mapper.Map<StartingInfos>(item));
+                await _recurringTransactionService.CreateAsync(_mapper.Map<RecurringTransaction>(item));
                 return Ok(item);
             }
             catch (Exception ex)
@@ -40,7 +40,7 @@ namespace BackEnd.Controllers
         {
             try
             {
-                var item = await _startingInfosService.GetByIdAsync(id);
+                var item = await _recurringTransactionService.GetByIdAsync(id);
                 if (item == null) return NotFound();
                 return Ok(item);
             }
@@ -56,7 +56,7 @@ namespace BackEnd.Controllers
         {
             try
             {
-                var items = await _startingInfosService.GetAsync();
+                var items = await _recurringTransactionService.GetAsync();
                 return Ok(items);
             }
             catch (Exception ex)
@@ -67,11 +67,11 @@ namespace BackEnd.Controllers
         }
 
         [HttpPut(nameof(Update))]
-        public async Task<IActionResult> Update(string id, [FromBody] StartingInfosUpdateModel item)
+        public async Task<IActionResult> Update(string id, [FromBody] RecurringTransactionUpdateModel item)
         {
             try
             {
-                await _startingInfosService.UpdateAsync(id, _mapper.Map<StartingInfos>(item));
+                await _recurringTransactionService.UpdateAsync(id, _mapper.Map<RecurringTransaction>(item));
                 return NoContent();
             }
             catch (Exception ex)
@@ -86,7 +86,7 @@ namespace BackEnd.Controllers
         {
             try
             {
-                await _startingInfosService.DeleteAsync(id);
+                await _recurringTransactionService.DeleteAsync(id);
                 return NoContent();
             }
             catch (Exception ex)

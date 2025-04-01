@@ -1,6 +1,6 @@
 ﻿using AutoMapper;
 using BackEnd.CosmosEntities;
-using BackEnd.Models.UserInformation;
+using BackEnd.Models.StartingInfos;
 
 namespace BackEnd.Profiles
 {

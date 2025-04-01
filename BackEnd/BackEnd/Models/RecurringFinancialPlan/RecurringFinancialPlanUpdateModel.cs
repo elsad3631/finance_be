@@ -1,8 +1,6 @@
-﻿using Newtonsoft.Json;
-
-namespace BackEnd.Models.UserInformation
+﻿namespace BackEnd.Models.RecurringFinancialPlan
 {
-    public class StartingInfosUpdateModel
+    public class RecurringFinancialPlanUpdateModel
     {
         public string Id { get; set; } = string.Empty;
         public string UseCase { get; set; }

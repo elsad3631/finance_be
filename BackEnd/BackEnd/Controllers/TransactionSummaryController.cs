@@ -1,19 +1,19 @@
 ﻿using AutoMapper;
 using BackEnd.CosmosEntities;
 using BackEnd.Interfaces.IBusinessServices;
-using BackEnd.Models.StartingInfos;
+using BackEnd.Models.TransactionSummary;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BackEnd.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class UserInformationController : ControllerBase
+    public class TransactionSummaryController : ControllerBase
     {
         private readonly IMapper _mapper;
-        private readonly ILogger<UserInformationController> _logger;
-        private readonly IStartingInfosService _startingInfosService;
-        public UserInformationController(IMapper mapper, ILogger<UserInformationController> logger, IStartingInfosService startingInfosService)
+        private readonly ILogger<TransactionSummaryController> _logger;
+        private readonly ITransactionSummaryService _startingInfosService;
+        public TransactionSummaryController(IMapper mapper, ILogger<TransactionSummaryController> logger, ITransactionSummaryService startingInfosService)
         {
             _mapper = mapper;
             _logger = logger;
@@ -21,11 +21,11 @@ namespace BackEnd.Controllers
         }
 
         [HttpPost(nameof(Create))]
-        public async Task<IActionResult> Create([FromBody] StartingInfosCreateModel item)
+        public async Task<IActionResult> Create([FromBody] TransactionSummaryCreateModel item)
         {
             try
             {
-                await _startingInfosService.CreateAsync(_mapper.Map<StartingInfos>(item));
+                await _startingInfosService.CreateAsync(_mapper.Map<TransactionSummary>(item));
                 return Ok(item);
             }
             catch (Exception ex)
@@ -67,11 +67,11 @@ namespace BackEnd.Controllers
         }
 
         [HttpPut(nameof(Update))]
-        public async Task<IActionResult> Update(string id, [FromBody] StartingInfosUpdateModel item)
+        public async Task<IActionResult> Update(string id, [FromBody] TransactionSummaryUpdateModel item)
         {
             try
             {
-                await _startingInfosService.UpdateAsync(id, _mapper.Map<StartingInfos>(item));
+                await _startingInfosService.UpdateAsync(id, _mapper.Map<TransactionSummary>(item));
                 return NoContent();
             }
             catch (Exception ex)

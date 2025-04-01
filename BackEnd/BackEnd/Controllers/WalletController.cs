@@ -8,12 +8,12 @@ namespace BackEnd.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class UserInformationController : ControllerBase
+    public class WalletController : ControllerBase
     {
         private readonly IMapper _mapper;
-        private readonly ILogger<UserInformationController> _logger;
+        private readonly ILogger<WalletController> _logger;
         private readonly IStartingInfosService _startingInfosService;
-        public UserInformationController(IMapper mapper, ILogger<UserInformationController> logger, IStartingInfosService startingInfosService)
+        public WalletController(IMapper mapper, ILogger<WalletController> logger, IStartingInfosService startingInfosService)
         {
             _mapper = mapper;
             _logger = logger;
