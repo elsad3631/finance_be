@@ -1,0 +1,9 @@
+{
+  "profiles": {
+    "FinanceFunctions": {
+      "commandName": "Project",
+      "commandLineArgs": "--port 7274",
+      "launchBrowser": false
+    }
+  }
+}
