@@ -11,108 +11,86 @@ using OpenAI.Chat;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
-using Azure.AI.DocumentIntelligence;
-using Azure.Identity;
 using Xceed.Words.NET;
 using System.Net;
 using System.Text.Json;
-using FinanceFunctions.Models;
 using FinanceFunctions.CosmosEntities;
 using FinanceFunctions.IServices;
+using Azure.Storage.Blobs;
+using System.Configuration;
 
 namespace FinanceFunctions.Functions
 {
     public class ResourcesFunctions
     {
         private readonly IResourcesService _resourcesService;
-        private readonly string openAiEndpoint = Environment.GetEnvironmentVariable("OPENAI_ENDPOINT");
-        private readonly string openAiKey = Environment.GetEnvironmentVariable("OPENAI_KEY");
-        private readonly string openAiDeployment = Environment.GetEnvironmentVariable("OPENAI_DEPLOYMENT");
-        public ResourcesFunctions(IResourcesService resourcesService)
+        private readonly IBlobStorageService _blobStorageService;
+        private readonly IAzureAIService _azureAIService;
+
+        public ResourcesFunctions(IResourcesService resourcesService, IBlobStorageService blobStorageService, IAzureAIService azureAIService)
         {
             _resourcesService = resourcesService;
+            _blobStorageService = blobStorageService;
+            _azureAIService = azureAIService;
         }
 
         [FunctionName("Insert")]
         public async Task<HttpResponseMessage> Run(
-            [HttpTrigger(AuthorizationLevel.Function, "get", "post", Route = "Resource/Insert")] HttpRequest req,
+            [HttpTrigger(AuthorizationLevel.Function, "post", Route = "Resource/Insert")] HttpRequest req,
             ILogger log)
         {
             try
             {
-                // 1. Leggi l'URL del file dalla query string o dal body
-                string fileUrl = req.Query["url"];
-                if (string.IsNullOrEmpty(fileUrl))
+                // Controllo se c'è un file in input
+                if (!req.HasFormContentType || req.Form.Files.Count == 0)
                 {
                     return new HttpResponseMessage(HttpStatusCode.BadRequest)
                     {
-                        Content = new StringContent("Parametro 'url' mancante.")
+                        Content = new StringContent("File non fornito.")
                     };
                 }
 
-                // 2. Scarica il file
-                using var httpClient = new HttpClient();
-                var fileBytes = await httpClient.GetByteArrayAsync(fileUrl);
-                var memoryStream = new MemoryStream(fileBytes);
+                var file = req.Form.Files[0];
 
+                Resource newResource = await _resourcesService.CreateAsync(new Resource());
+                string newResourceId = newResource.Id;
+
+                string fileName = $"{newResourceId}/{file.FileName.Replace(" ", "_")}";
+
+                using (var fileStream = file.OpenReadStream())
+                {
+                    string fileUrl = await _blobStorageService.UploadFileAsync(fileStream, fileName);
+                }
+
+                var memoryStream = await _blobStorageService.DownloadFileAsync(fileName);
                 memoryStream.Position = 0;
 
                 string extractedText = string.Empty;
-                string extension = Path.GetExtension(fileUrl).ToLower();
-                if (extension.Contains("word") || extension.Contains("docx"))
+                string extension = Path.GetExtension(file.FileName).ToLower();
+                if (extension.Contains("docx"))
                 {
                     using var doc = DocX.Load(memoryStream);
                     extractedText = doc.Text;
                 }
                 else
                 {
-                    throw new NotSupportedException("Tipo file non supportato. Solo PDF o DOCX.");
+                    throw new NotSupportedException("Tipo file non supportato. Solo DOCX.");
                 }
 
-                //Prompt per OpenAI
-                string prompt = $@"Sei un assistente AI che analizza curriculum vitae.
-                                Estrai e restituisci in JSON le seguenti informazioni:
-                                - Name
-                                - LastName
-                                - Experiences (Title, Agency, Period)
-                                - Skills (Name, Vote (da 1 a 10 in base al livello di esperienza))
+                string resourceData = await _azureAIService.GetResourceData(extractedText);
+                newResource = JsonSerializer.Deserialize<Resource>(resourceData);
+                newResource.Id = newResourceId;
+                newResource.CVName = fileName;
 
-                                Testo del CV: 
+                await _resourcesService.UpdateAsync(newResourceId, newResource);
 
-                                '''{extractedText}'''";
-
-                var openAiClient = new AzureOpenAIClient(new Uri(this.openAiEndpoint), new AzureKeyCredential(this.openAiKey));
-
-                var chatClient = openAiClient.GetChatClient(this.openAiDeployment);
-
-                var chatOptions = new ChatCompletionOptions()
-                {
-                    Temperature = 0.2f,
-                };
-
-                var messages = new List<ChatMessage>();
-                messages.Add(new UserChatMessage(prompt));
-
-                var response = await chatClient.CompleteChatAsync(messages, chatOptions);
-                var chatResponse = response.Value.Content.Last().Text;
-
-                // Opzionale: tenta di isolare solo la parte JSON valida
-                int jsonStart = chatResponse.IndexOf('{');
-                int jsonEnd = chatResponse.LastIndexOf('}');
-                Resource result = new Resource();
-                if (jsonStart >= 0 && jsonEnd >= 0)
-                {
-                    string jsonClean = chatResponse.Substring(jsonStart, jsonEnd - jsonStart + 1);
-                    result = JsonSerializer.Deserialize<Resource>(jsonClean);
-                    await _resourcesService.CreateAsync(result);
-                }
-
-                return new HttpResponseMessage(System.Net.HttpStatusCode.OK) { Content = new StringContent(JsonSerializer.Serialize(result)) };
+                log.LogInformation("Resource Inserted");
+                return new HttpResponseMessage(HttpStatusCode.OK);
             }
             catch (Exception ex)
             {
                 log.LogError("Errore: " + ex.Message);
-                return new HttpResponseMessage(System.Net.HttpStatusCode.InternalServerError) { Content = new StringContent(ex.Message) };
+                return new HttpResponseMessage(HttpStatusCode.InternalServerError) { Content = new StringContent(ex.Message) };
             }
         }
     }

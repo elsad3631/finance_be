@@ -22,6 +22,12 @@ namespace FinanceFunctions
             //builder.Services.AddHttpClient();
             var configuration = builder.GetContext().Configuration;
 
+            builder.Services.AddSingleton<IBlobStorageService>(provider =>
+                    new BlobStorageService(configuration["AzureBlobStorageConnectionString"], configuration["AzureBlobStorageContainer"]));
+
+            builder.Services.AddSingleton<IAzureAIService>(provider =>
+                    new AzureAIService(configuration["OPENAI_ENDPOINT"], configuration["OPENAI_KEY"], configuration["OPENAI_DEPLOYMENT"]));
+
             builder.Services.AddScoped<INewsService, NewsService>(x =>
             new NewsService(
                configuration["CosmosDb_ConnectionString"]!,
@@ -37,6 +43,14 @@ namespace FinanceFunctions
               configuration["CosmosDb_Containers_ResourcesContainer"]!,
               configuration["CosmosDb_Key"]!
            ));
+
+            builder.Services.AddScoped<IJobsService, JobsService>(x =>
+            new JobsService(
+               configuration["CosmosDb_ConnectionString"]!,
+               configuration["CosmosDb_DatabaseName"]!,
+               configuration["CosmosDb_Containers_JobsContainer"]!,
+               configuration["CosmosDb_Key"]!
+            ));
         }
     }
 }
