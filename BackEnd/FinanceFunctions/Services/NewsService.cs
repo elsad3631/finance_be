@@ -20,7 +20,7 @@ namespace FinanceFunctions.Services
         {
             try
             {
-                item.CreationDate = DateTime.Now.ToString();
+                item.CreationDate = DateTime.Now;
                 await _container.CreateItemAsync(item, new PartitionKey(item.Id));
                 return item;
             }

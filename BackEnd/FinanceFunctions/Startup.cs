@@ -22,6 +22,8 @@ namespace FinanceFunctions
             //builder.Services.AddHttpClient();
             var configuration = builder.GetContext().Configuration;
 
+            builder.Services.AddScoped<IApplicationUsersService, ApplicationUsersService>();
+
             builder.Services.AddSingleton<IBlobStorageService>(provider =>
                     new BlobStorageService(configuration["AzureBlobStorageConnectionString"], configuration["AzureBlobStorageContainer"]));
 
@@ -36,21 +38,31 @@ namespace FinanceFunctions
                configuration["CosmosDb_Key"]!
             ));
 
-            builder.Services.AddScoped<IResourcesService, ResourcesService>(x =>
-           new ResourcesService(
+            builder.Services.AddScoped<IEmployeesService, EmployeesService>(x =>
+           new EmployeesService(
               configuration["CosmosDb_ConnectionString"]!,
               configuration["CosmosDb_DatabaseName"]!,
-              configuration["CosmosDb_Containers_ResourcesContainer"]!,
+              configuration["CosmosDb_Containers_EmployeesContainer"]!,
               configuration["CosmosDb_Key"]!
            ));
 
-            builder.Services.AddScoped<IJobsService, JobsService>(x =>
-            new JobsService(
+            builder.Services.AddScoped<IProjectsService, ProjectsService>(x =>
+            new ProjectsService(
                configuration["CosmosDb_ConnectionString"]!,
                configuration["CosmosDb_DatabaseName"]!,
-               configuration["CosmosDb_Containers_JobsContainer"]!,
+               configuration["CosmosDb_Containers_ProjectsContainer"]!,
                configuration["CosmosDb_Key"]!
             ));
+
+            builder.Services.AddScoped<IProjectAssignmentsService, ProjectAssignmentsService>(x =>
+           new ProjectAssignmentsService(
+              configuration["CosmosDb_ConnectionString"]!,
+              configuration["CosmosDb_DatabaseName"]!,
+              configuration["CosmosDb_Containers_ProjectAssignmentsContainer"]!,
+              configuration["CosmosDb_Key"]!
+           ));
+
+            builder.Services.AddScoped<ISkillTrainingsService, SkillTrainingsService>();
         }
     }
 }

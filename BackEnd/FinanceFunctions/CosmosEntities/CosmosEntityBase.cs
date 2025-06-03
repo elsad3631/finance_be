@@ -9,9 +9,9 @@ namespace FinanceFunctions.CosmosEntities
         public string Id { get; set; } = Guid.NewGuid().ToString();
 
         [JsonProperty("creation_date")]
-        public string CreationDate { get; set; } = string.Empty;
+        public DateTime CreationDate { get; set; } = DateTime.UtcNow;
 
         [JsonProperty("update_date")]
-        public string UpdateDate { get; set; } = string.Empty;
+        public DateTime UpdateDate { get; set; } = DateTime.UtcNow;
     }
 }

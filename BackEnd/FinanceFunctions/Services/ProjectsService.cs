@@ -7,20 +7,22 @@ using System.Threading.Tasks;
 
 namespace FinanceFunctions.Services
 {
-    public class ResourcesService : IResourcesService
+    public class ProjectsService : IProjectsService
     {
         private readonly Container _container;
-        public ResourcesService(string connection, string dbName, string containerName, string key)
+        public ProjectsService(string connection, string dbName, string containerName, string key)
         {
             CosmosClient cosmosClient = new CosmosClient(accountEndpoint: connection, authKeyOrResourceToken: key);
 
             _container = cosmosClient.GetContainer(dbName, containerName);
         }
-        public async Task<Resource> CreateAsync(Resource item)
+        public async Task<Project> CreateAsync(Project item)
         {
             try
             {
-                item.CreationDate = DateTime.Now.ToString();
+                // Imposta CreationDate prima della creazione
+                item.CreationDate = DateTime.UtcNow;
+                item.UpdateDate = DateTime.UtcNow;
                 await _container.CreateItemAsync(item, new PartitionKey(item.Id));
                 return item;
             }
@@ -34,7 +36,7 @@ namespace FinanceFunctions.Services
         {
             try
             {
-                await _container.DeleteItemAsync<Resource>(id, new PartitionKey(id));
+                await _container.DeleteItemAsync<Project>(id, new PartitionKey(id));
                 return true;
             }
             catch (Exception ex)
@@ -43,26 +45,26 @@ namespace FinanceFunctions.Services
             }
         }
 
-        public async Task<IEnumerable<Resource>> GetAsync()
+        public async Task<IEnumerable<Project>> GetAsync()
         {
             var queryDefinition = new QueryDefinition("SELECT * FROM c");
-            var resultSet = _container.GetItemQueryIterator<Resource>(queryDefinition);
-            List<Resource> results = new List<Resource>();
+            var resultSet = _container.GetItemQueryIterator<Project>(queryDefinition);
+            List<Project> results = new List<Project>();
 
             while (resultSet.HasMoreResults)
             {
-                FeedResponse<Resource> response = await resultSet.ReadNextAsync();
+                FeedResponse<Project> response = await resultSet.ReadNextAsync();
                 results.AddRange(response);
             }
 
             return results;
         }
 
-        public async Task<Resource> GetByIdAsync(string id)
+        public async Task<Project> GetByIdAsync(string id)
         {
             try
             {
-                ItemResponse<Resource> response = await _container.ReadItemAsync<Resource>(id, new PartitionKey(id));
+                ItemResponse<Project> response = await _container.ReadItemAsync<Project>(id, new PartitionKey(id));
                 return response.Resource;
             }
             catch (Exception ex)
@@ -71,11 +73,11 @@ namespace FinanceFunctions.Services
             }
         }
 
-        public async Task UpdateAsync(string id, Resource item)
+        public async Task UpdateAsync(string id, Project item)
         {
             try
             {
-                ItemResponse<Resource> response = await _container.ReadItemAsync<Resource>(id, new PartitionKey(id));
+                ItemResponse<Project> response = await _container.ReadItemAsync<Project>(id, new PartitionKey(id));
                 item.Id = id;
                 item.CreationDate = response.Resource.CreationDate;
                 await _container.UpsertItemAsync(item, new PartitionKey(id));
