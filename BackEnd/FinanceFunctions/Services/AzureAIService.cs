@@ -233,86 +233,107 @@ namespace FinanceFunctions.Services
         {
             try
             {
-                // Prepara i dati per l'AI
-                string projectSkillsJson = System.Text.Json.JsonSerializer.Serialize(new
+                var projectSkills = new
                 {
-                    HardSkills = project.RequiredHardSkills,
+                    HardSkills = project.RequiredHardSkills.Select(s => new
+                    {
+                        s.Name,
+                        s.IsMandatory,
+                        s.MinProficiencyLevel
+                    }),
                     SoftSkills = project.RequiredSoftSkills
-                });
+                };
 
-                string employeesJson = System.Text.Json.JsonSerializer.Serialize(availableEmployees.Select(e => new
+                var employees = availableEmployees.Select(e => new
                 {
                     e.Id,
                     e.FirstName,
                     e.LastName,
-                    e.HardSkills,
-                    e.SoftSkills,
-                    e.Experiences // L'AI può usare le esperienze per valutare la rilevanza delle skill
-                }));
+                    HardSkills = e.HardSkills.Select(hs => new
+                    {
+                        hs.Name,
+                        hs.ProficiencyLevel
+                    }),
+                    SoftSkills = e.SoftSkills.Select(ss => ss.Name),
+                    e.Experiences
+                });
 
-                string prompt = $@"Sei un analista di talenti AI. Ti fornirò le competenze richieste per un progetto e un elenco di dipendenti disponibili con le loro competenze ed esperienze.
-                                    Il tuo compito è:
+                var projectSkillsJson = JsonSerializer.Serialize(projectSkills, new JsonSerializerOptions { WriteIndented = false });
+                var employeesJson = JsonSerializer.Serialize(employees, new JsonSerializerOptions { WriteIndented = false });
 
-                                    Valutare il matching di ogni dipendente rispetto alle competenze richieste dal progetto.
-                                    Calcolare un punteggio di matching (da 0.0 a 1.0, dove 1.0 è un match perfetto) per ogni dipendente.
-                                    Identificare le competenze mancanti per un match perfetto per ogni dipendente.
-                                    Identificare eventuali competenze extra rilevanti che il dipendente possiede.
-                                    Restituire una lista ordinata dei dipendenti dal più al meno adatto, includendo il punteggio di matching, le competenze mancanti ed extra.
-                                    Competenze richieste dal progetto (HardSkills e SoftSkills):
-                                    {projectSkillsJson}
-                                    ### Dipendenti disponibili:
-                                    {employeesJson}
+                var prompt = @$"Sei un'AI specializzata nel matching di talenti con progetti software.
 
-                                    ### Risposta attesa:
-                                    Restituisci solo un oggetto JSON valido, con una lista nel seguente formato:
-                                    {{ ""result"":
-                                        [
-                                            {{
-                                                ""employeeId"": ""<ID_Dipendente>"",
-                                                ""matchScore"": 0.95,
-                                                ""missingSkills"": [""Azure Service Bus""],
-                                                ""potentialSkills"": [""GraphQL""],
-                                                ""employeeDetails"": {{ ... dettagli sintetici del dipendente ... }}
-                                            }},
-                                            // ... altri dipendenti ...
-                                        ]
-                                    }}
-                                    Considera che le HardSkills con IsMandatory: true e un MinProficiencyLevel elevato dovrebbero avere un peso maggiore nel punteggio. Le SoftSkills sono importanti per la compatibilità del team.";
+                                Riceverai:
+                                1. Le competenze richieste per un progetto (hard e soft skills), incluse le hard skills con indicazioni di obbligatorietà e livello minimo richiesto.
+                                2. Un elenco di dipendenti disponibili, con le loro competenze (con livelli di padronanza), soft skill ed esperienze.
 
-                var chatOptions = new ChatCompletionOptions()
+                                Il tuo compito è:
+                                - Calcolare un punteggio di matching per ciascun dipendente (tra 0.0 e 1.0).
+                                - Indicare le competenze mancanti (hard o soft) per ogni dipendente.
+                                - Indicare competenze extra rilevanti non richieste ma utili.
+                                - Ordinare i dipendenti dal più al meno adatto.
+
+                                Poni particolare enfasi sulle hard skill con IsMandatory=true e MinProficiencyLevel elevato.
+
+                                ### Requisiti del progetto:
+                                {projectSkillsJson}
+
+                                ### Dipendenti disponibili:
+                                {employeesJson}
+
+                                ### Risultato atteso:
+                                Restituisci un oggetto JSON valido nel seguente formato:
+
+                                {{
+                                    ""result"": [
+                                    {{
+                                        ""employeeId"": ""<ID>"",
+                                        ""matchScore"": 0.94,
+                                        ""missingSkills"": [""skill1"", ""skill2""],
+                                        ""potentialSkills"": [""skillX"", ""skillY""],
+                                        ""employeeDetails"": {{
+                                        ""FirstName"": ""Nome"",
+                                        ""LastName"": ""Cognome"",
+                                        ""HardSkills"": [{{""Name"":""..."", ""ProficiencyLevel"": 8}}, ...],
+                                        ""SoftSkills"": [{{""Name"":""...""}}, ...]
+                                        }}
+                                    }},
+                                    ...
+                                    ]
+                                }}";
+
+                var chatOptions = new ChatCompletionOptions
                 {
-                    Temperature = 0.5f, // Aumenta leggermente per un po' di creatività nel matching
-                    ResponseFormat = ChatResponseFormat.CreateJsonObjectFormat(),
+                    Temperature = 0.4f,
+                    ResponseFormat = ChatResponseFormat.CreateJsonObjectFormat()
                 };
 
-                var messages = new List<ChatMessage>()
-                {
-                    new SystemChatMessage("Sei un AI specializzato nel matching di talenti. Valuta con precisione le competenze dei dipendenti rispetto ai requisiti di progetto e genera un punteggio di adeguatezza."),
-                    new UserChatMessage(prompt)
-                };
-
-                
+                var messages = new List<ChatMessage>
+        {
+            new SystemChatMessage("Sei un AI esperto nell'analisi delle competenze. Rispondi esclusivamente con un JSON valido come specificato."),
+            new UserChatMessage(prompt)
+        };
 
                 var response = await _chatClient.CompleteChatAsync(messages, chatOptions);
-                var chatResponse = response.Value.Content.Last().Text;
+                var jsonResponse = response.Value.Content.Last().Text;
 
-                int jsonStart = chatResponse.IndexOf('[');
-                int jsonEnd = chatResponse.LastIndexOf(']');
+                var jsonDoc = JsonDocument.Parse(jsonResponse);
+                if (!jsonDoc.RootElement.TryGetProperty("result", out var resultElement))
+                    throw new Exception("Risposta JSON non contiene 'result'");
 
-                if (jsonStart >= 0 && jsonEnd >= 0)
+                var matchedEmployees = JsonSerializer.Deserialize<List<EmployeeMatchResult>>(resultElement.GetRawText(), new JsonSerializerOptions
                 {
-                    chatResponse = chatResponse.Substring(jsonStart, jsonEnd - jsonStart + 1);
-                }
-
-                var matchedEmployees = System.Text.Json.JsonSerializer.Deserialize<List<EmployeeMatchResult>>(chatResponse, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                    PropertyNameCaseInsensitive = true
+                });
 
                 return matchedEmployees;
             }
             catch (Exception ex)
             {
-                throw new Exception($"Error in GetBestMatchesForProject: {ex.Message}", ex);
+                throw new Exception($"Errore in GetBestMatchesForProject: {ex.Message}", ex);
             }
         }
+
 
         /// <summary>
         /// Suggerisce corsi di formazione a un dipendente basandosi sulle sue competenze e sulle skill gap.
